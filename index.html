@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chord Flasher — Guitar Chord Practice Tool</title>
-  <meta name="description" content="Free guitar practice tool. Flash random chords at any BPM, learn which chords belong in every key, and drill with built-in flashcards. No sign-up required.">
+  <meta name="description" content="Free guitar practice tool. Flash random chords at any BPM, learn which chords belong in every key, and test yourself with a built-in quiz that tracks your progress. No sign-up required.">
   <meta name="theme-color" content="#0d0d14">
   <meta property="og:title"       content="Chord Flasher">
-  <meta property="og:description" content="Practice switching guitar chords at any tempo. Includes chord diagrams, key modes, and a flashcard mode for every major and minor key.">
+  <meta property="og:description" content="Practice switching guitar chords at any tempo. Includes chord diagrams, key modes, and a learn-as-you-go quiz for every major and minor key.">
   <meta property="og:type"        content="website">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -234,119 +234,147 @@
     .play-btn.running:hover { background: rgba(240,165,0,0.07); }
 
     /* ════════════════════════════════════
-       FLASHCARD TAB
+       QUIZ TAB
     ════════════════════════════════════ */
 
-    .fc-panel {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 1.4rem; width: 100%; max-width: 420px;
+    .quiz-panel {
+      display: flex; flex-direction: column; align-items: stretch;
+      gap: 1.2rem; width: 100%; max-width: 440px;
     }
 
-    /* Top controls row */
-    .fc-top {
-      display: flex; align-items: center; gap: 10px; width: 100%;
+    /* ── Home view ── */
+    .q-intro {
+      text-align: center; color: var(--dim);
+      font-size: 0.8rem; line-height: 1.5; margin-bottom: 1rem;
     }
-    .fc-top select { flex: 1; }
-
-    .fc-shuffle-btn {
-      padding: 7px 16px;
-      border: 1.5px solid var(--border); border-radius: 10px;
-      background: transparent; color: var(--dim);
-      font-size: 0.75rem; font-weight: 700;
+    .q-scope { display: flex; gap: 6px; width: 100%; margin-bottom: 1rem; }
+    .q-scope-btn {
+      flex: 1; padding: 8px 0;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 9px; color: var(--dim);
+      font-size: 0.72rem; font-weight: 700;
       letter-spacing: 0.1em; text-transform: uppercase;
-      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+      cursor: pointer; transition: all 0.15s;
     }
-    .fc-shuffle-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .q-scope-btn.on { background: rgba(240,165,0,0.12); border-color: var(--accent); color: var(--accent); }
 
-    /* 3D flip card */
-    .fc-scene {
-      perspective: 900px;
-      width: min(360px, 100%);
-      aspect-ratio: 36 / 29;
-      cursor: pointer; user-select: none;
-    }
-    .fc-card-inner {
-      width: 100%; height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.42s ease;
-    }
-    .fc-card-inner.flipped { transform: rotateY(180deg); }
-
-    .fc-face {
-      position: absolute; inset: 0;
-      backface-visibility: hidden; -webkit-backface-visibility: hidden;
-      border-radius: 24px;
-      border: 2px solid var(--border);
-      background: var(--card);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 2rem;
-    }
-    .fc-face.back { transform: rotateY(180deg); }
-
-    /* Front */
-    .fc-key-name {
-      font-size: clamp(2.4rem, 9vw, 3.4rem); font-weight: 800;
-      letter-spacing: -0.03em; color: #e8e8f0; line-height: 1;
-    }
-    .fc-key-mode {
-      margin-top: 0.5rem;
-      font-size: 0.7rem; font-weight: 700;
-      letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim);
-    }
-    .fc-tap-hint {
-      margin-top: 2rem;
-      font-size: 0.65rem; font-weight: 600;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--dim); opacity: 0.5;
-    }
-
-    /* Back */
-    .fc-back-label {
-      font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--dim); margin-bottom: 1rem;
-    }
-    .fc-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px; width: 100%;
-    }
-    .fc-badge {
-      display: flex; flex-direction: column;
-      align-items: center; padding: 9px 6px;
-      border-radius: 10px; border: 1px solid var(--border); gap: 3px;
-    }
-    .fc-badge.major { border-color: rgba(77,217,184,0.35); background: rgba(77,217,184,0.07); }
-    .fc-badge.minor { border-color: rgba(139,143,252,0.35); background: rgba(139,143,252,0.07); }
-    .fc-deg {
-      font-size: 0.58rem; font-weight: 700;
-      letter-spacing: 0.06em; color: var(--dim);
-    }
-    .fc-ch {
-      font-size: 1.35rem; font-weight: 800;
-      letter-spacing: -0.02em; line-height: 1;
-    }
-    .fc-badge.major .fc-ch { color: #4dd9b8; }
-    .fc-badge.minor .fc-ch { color: #8b8ffc; }
-
-    /* Navigation */
-    .fc-nav {
-      display: flex; align-items: center; gap: 1.2rem;
-    }
-    .fc-nav-btn {
-      width: 42px; height: 42px; border-radius: 50%;
-      border: 1.5px solid var(--border); background: transparent;
-      color: #e8e8f0; font-size: 1rem; cursor: pointer;
+    .q-activities { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.2rem; }
+    .q-act-btn {
+      text-align: left; cursor: pointer; width: 100%;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 1rem 1.2rem;
       transition: all 0.15s;
+      display: flex; align-items: center; gap: 0.9rem;
+    }
+    .q-act-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .q-act-num {
+      flex: none; width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(240,165,0,0.14); color: var(--accent);
       display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.95rem;
     }
-    .fc-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .fc-progress {
-      font-size: 0.72rem; font-weight: 600;
-      color: var(--dim); min-width: 58px; text-align: center;
+    .q-act-text { display: flex; flex-direction: column; gap: 2px; }
+    .q-act-title { font-weight: 700; font-size: 0.95rem; color: #e8e8f0; }
+    .q-act-desc  { font-size: 0.72rem; color: var(--dim); line-height: 1.35; }
+
+    /* ── Stats card ── */
+    .q-stats {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.1rem 1.2rem;
+      display: flex; flex-direction: column; gap: 0.9rem;
     }
+    .q-stats-title {
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim);
+    }
+    .q-stat-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .q-stat-big { font-size: 1.8rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .q-stat-sub { font-size: 0.7rem; color: var(--dim); }
+    .q-improve {
+      font-size: 0.74rem; color: #e8e8f0;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    }
+    .q-improve .up   { color: #4dd9b8; font-weight: 700; }
+    .q-improve .down { color: #f87171; font-weight: 700; }
+    .q-spark { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+    .q-spark-bar { flex: 1; min-width: 3px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.8; }
+    .q-peract { display: flex; gap: 8px; }
+    .q-peract-cell {
+      flex: 1; text-align: center; padding: 7px 4px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .q-peract-pct { font-size: 1rem; font-weight: 800; color: #e8e8f0; }
+    .q-peract-lbl { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin-top: 2px; }
+
+    /* ── Question view ── */
+    .q-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .q-quit { background: transparent; border: none; color: var(--dim); font-size: 0.95rem; cursor: pointer; padding: 0 4px; line-height: 1; }
+    .q-quit:hover { color: #f87171; }
+    .q-progress { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); flex: 1; text-align: center; }
+    .q-score { font-size: 0.7rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .q-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .q-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+
+    .q-card {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 20px; padding: 1.4rem 1.3rem;
+      display: flex; flex-direction: column; gap: 1.1rem;
+    }
+    .q-prompt { text-align: center; }
+    .q-prompt-label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); margin-bottom: 0.5rem; }
+    .q-prompt-main { font-size: clamp(2.4rem, 11vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .q-prompt-main.major { color: #4dd9b8; }
+    .q-prompt-main.minor { color: #8b8ffc; }
+    .q-prompt-sub { margin-top: 0.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+
+    .q-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .q-keyopts { grid-template-columns: repeat(2, 1fr); }
+    .q-opt {
+      padding: 12px 6px; border-radius: 11px;
+      border: 1.5px solid var(--border); background: transparent;
+      color: #e8e8f0; font-size: 1.05rem; font-weight: 700;
+      cursor: pointer; transition: all 0.12s; text-align: center;
+    }
+    .q-keyopts .q-opt { font-size: 0.9rem; }
+    .q-opt:hover:not(:disabled) { border-color: #3a3a50; }
+    .q-opt.sel     { border-color: var(--accent); background: rgba(240,165,0,0.14); color: var(--accent); }
+    .q-opt.correct { border-color: #4dd9b8; background: rgba(77,217,184,0.16); color: #4dd9b8; }
+    .q-opt.wrong   { border-color: #f87171; background: rgba(248,113,113,0.16); color: #f87171; text-decoration: line-through; }
+    .q-opt.missed  { border-color: #4dd9b8; border-style: dashed; color: #4dd9b8; }
+    .q-opt:disabled { cursor: default; }
+
+    .q-input {
+      width: 100%; background: var(--bg);
+      border: 1.5px solid var(--border); border-radius: 11px;
+      color: #e8e8f0; padding: 12px 14px; font-size: 1rem;
+      outline: none; transition: border-color 0.15s;
+    }
+    .q-input:focus { border-color: var(--accent); }
+    .q-input:disabled { opacity: 0.7; }
+    .q-hint { font-size: 0.66rem; color: var(--dim); text-align: center; margin-top: -0.5rem; }
+
+    .q-action {
+      width: 100%; padding: 13px; border: 2px solid transparent; border-radius: 12px;
+      font-size: 0.86rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.15s;
+      background: var(--accent); color: #000;
+    }
+    .q-action:hover { background: #ffba18; }
+    .q-action.ghost { background: transparent; border-color: var(--accent); color: var(--accent); }
+    .q-action.ghost:hover { background: rgba(240,165,0,0.08); }
+
+    .q-feedback { border-radius: 12px; padding: 0.9rem 1rem; font-size: 0.82rem; line-height: 1.5; }
+    .q-feedback.good { background: rgba(77,217,184,0.12); border: 1px solid rgba(77,217,184,0.4); color: #8ee9d2; }
+    .q-feedback.bad  { background: rgba(248,113,113,0.10); border: 1px solid rgba(248,113,113,0.35); color: #f4a6a6; }
+    .q-feedback b { color: #e8e8f0; }
+
+    .q-btnrow { display: flex; gap: 8px; }
+    .q-btnrow .q-action { flex: 1; }
+
+    /* ── Complete view ── */
+    .q-complete { text-align: center; display: flex; flex-direction: column; gap: 1.2rem; align-items: center; }
+    .q-complete-big { font-size: 3.4rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .q-complete-sub { font-size: 0.85rem; color: var(--dim); }
     /* ════════════════════════════════════
        RESPONSIVE — MOBILE (≤ 540px)
     ════════════════════════════════════ */
@@ -391,17 +419,12 @@
       .panel { max-width: 100%; }
       .pill  { padding: 10px 0; }  /* taller tap target */
 
-      /* ── Flashcard ── */
-      .fc-panel { max-width: 100%; }
-
-      .fc-face { padding: 1.4rem; }
-
-      .fc-grid  { gap: 6px; }
-      .fc-ch    { font-size: 1.15rem; }
-      .fc-deg   { font-size: 0.55rem; }
-      .fc-badge { padding: 7px 4px; }
-
-      .fc-shuffle-btn { padding: 10px 14px; }
+      /* ── Quiz ── */
+      .quiz-panel { max-width: 100%; }
+      .q-options { gap: 6px; }
+      .q-opt { padding: 13px 4px; font-size: 1rem; }
+      .q-keyopts .q-opt { font-size: 0.82rem; }
+      .q-card { padding: 1.2rem 1rem; }
     }
 
     /* ════════════════════════════════════
@@ -410,7 +433,7 @@
     @media (min-width: 541px) and (max-width: 768px) {
       .chord-card { padding: 2rem 2.5rem 1.8rem; }
       .panel      { max-width: 100%; }
-      .fc-panel   { max-width: 100%; }
+      .quiz-panel { max-width: 100%; }
     }
 
   </style>
@@ -421,7 +444,7 @@
 
 <div class="tabs">
   <button class="tab-btn active" data-tab="practice">Practice</button>
-  <button class="tab-btn"        data-tab="flashcards">Flashcards</button>
+  <button class="tab-btn"        data-tab="quiz">Quiz</button>
 </div>
 
 <!-- ═══════════════ PRACTICE PANEL ═══════════════ -->
@@ -503,43 +526,75 @@
 
 </div><!-- /practicePanel -->
 
-<!-- ═══════════════ FLASHCARD PANEL ═══════════════ -->
-<div id="flashcardsPanel" style="display:none">
+<!-- ═══════════════ QUIZ PANEL ═══════════════ -->
+<div id="quizPanel" style="display:none">
+  <div class="quiz-panel">
 
-  <div class="fc-panel">
+    <!-- HOME -->
+    <div id="quizHome">
+      <p class="q-intro">Pick an activity. Each round is 10 questions with instant feedback — your scores are saved so you can watch yourself improve over time.</p>
 
-    <div class="fc-top">
-      <select id="fcKeyType">
-        <option value="major">Major Keys</option>
-        <option value="minor">Minor Keys</option>
-        <option value="all">All Keys</option>
-      </select>
-      <button class="fc-shuffle-btn" id="fcShuffle">Shuffle</button>
+      <div class="q-scope" id="qScope">
+        <button class="q-scope-btn"    data-scope="major">Major</button>
+        <button class="q-scope-btn"    data-scope="minor">Minor</button>
+        <button class="q-scope-btn on" data-scope="all">All Keys</button>
+      </div>
+
+      <div class="q-activities">
+        <button class="q-act-btn" data-act="1">
+          <span class="q-act-num">1</span>
+          <span class="q-act-text">
+            <span class="q-act-title">Chords in a Key</span>
+            <span class="q-act-desc">Pick every chord that belongs to the shown key.</span>
+          </span>
+        </button>
+        <button class="q-act-btn" data-act="2">
+          <span class="q-act-num">2</span>
+          <span class="q-act-text">
+            <span class="q-act-title">Keys for a Chord</span>
+            <span class="q-act-desc">Select all the keys that contain the shown chord.</span>
+          </span>
+        </button>
+        <button class="q-act-btn" data-act="3">
+          <span class="q-act-num">3</span>
+          <span class="q-act-text">
+            <span class="q-act-title">Type the Key</span>
+            <span class="q-act-desc">Type out all six chords in the shown key.</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="q-stats" id="qStats"><!-- filled by JS --></div>
     </div>
 
-    <div class="fc-scene" id="fcScene">
-      <div class="fc-card-inner" id="fcCardInner">
-        <div class="fc-face front">
-          <div class="fc-key-name" id="fcKeyName">—</div>
-          <div class="fc-key-mode" id="fcKeyMode"></div>
-          <div class="fc-tap-hint">tap to reveal</div>
+    <!-- QUESTION -->
+    <div id="quizQuestion" style="display:none">
+      <div class="q-head">
+        <button class="q-quit" id="qQuit" title="Quit round">&#10005;</button>
+        <span class="q-progress" id="qProgress">Question 1 / 10</span>
+        <span class="q-score" id="qScore">0 correct</span>
+      </div>
+      <div class="q-bar" style="margin:0.7rem 0 1rem;"><div class="q-bar-fill" id="qBarFill"></div></div>
+      <div class="q-card" id="qCard"><!-- filled by JS --></div>
+    </div>
+
+    <!-- COMPLETE -->
+    <div id="quizComplete" style="display:none">
+      <div class="q-complete">
+        <div>
+          <div class="q-complete-big" id="qcPct">0%</div>
+          <div class="q-complete-sub" id="qcSub"></div>
         </div>
-        <div class="fc-face back">
-          <div class="fc-back-label" id="fcBackLabel"></div>
-          <div class="fc-grid" id="fcGrid"></div>
+        <div class="q-stats" id="qcStats" style="width:100%"></div>
+        <div class="q-btnrow" style="width:100%">
+          <button class="q-action ghost" id="qcHome">Home</button>
+          <button class="q-action" id="qcAgain">Again</button>
         </div>
       </div>
     </div>
 
-    <div class="fc-nav">
-      <button class="fc-nav-btn" id="fcPrev">&#8592;</button>
-      <span class="fc-progress" id="fcProgress">— / —</span>
-      <button class="fc-nav-btn" id="fcNext">&#8594;</button>
-    </div>
-
   </div>
-
-</div><!-- /flashcardsPanel -->
+</div><!-- /quizPanel -->
 
 <script>
 // ══════════════════════════════════════════════════
@@ -766,99 +821,348 @@ document.getElementById('pillGroup').addEventListener('click', e => {
 });
 
 // ══════════════════════════════════════════════════
-// FLASHCARD TAB
+// QUIZ TAB
 // ══════════════════════════════════════════════════
 
-let fcDeck = [], fcIdx = 0, fcFlipped = false, fcKeyType = 'major';
+// Pitch-class map for enharmonic-safe chord comparison
+const PITCH = {
+  'C':0,'B#':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'Fb':4,
+  'E#':5,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,
+  'Bb':10,'B':11,'Cb':11,
+};
 
-const fcCardInner = document.getElementById('fcCardInner');
-const fcKeyName   = document.getElementById('fcKeyName');
-const fcKeyMode   = document.getElementById('fcKeyMode');
-const fcBackLabel = document.getElementById('fcBackLabel');
-const fcGrid      = document.getElementById('fcGrid');
-const fcProgress  = document.getElementById('fcProgress');
+// Normalize any chord spelling to "pitchClass:quality" (e.g. "Gb" -> "6:major")
+function chordId(name) {
+  const m = String(name).trim().match(/^([A-Ga-g])([#b]?)(.*)$/);
+  if (!m) return null;
+  const root = m[1].toUpperCase() + (m[2] || '');
+  const p = PITCH[root];
+  if (p === undefined) return null;
+  const rest = m[3].toLowerCase().replace(/\s+/g, '');
+  let q = 'major';
+  if (rest.startsWith('maj')) q = 'major';
+  else if (rest[0] === 'm') q = 'minor';
+  return p + ':' + q;
+}
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
+// Canonical display names (one spelling per pitch+quality) for distractors
+const CANON_CHORDS = [
+  {n:'C',t:'major'},{n:'Cm',t:'minor'},  {n:'Db',t:'major'},{n:'C#m',t:'minor'},
+  {n:'D',t:'major'},{n:'Dm',t:'minor'},  {n:'Eb',t:'major'},{n:'Ebm',t:'minor'},
+  {n:'E',t:'major'},{n:'Em',t:'minor'},  {n:'F',t:'major'}, {n:'Fm',t:'minor'},
+  {n:'F#',t:'major'},{n:'F#m',t:'minor'},{n:'G',t:'major'}, {n:'Gm',t:'minor'},
+  {n:'Ab',t:'major'},{n:'G#m',t:'minor'},{n:'A',t:'major'}, {n:'Am',t:'minor'},
+  {n:'Bb',t:'major'},{n:'Bbm',t:'minor'},{n:'B',t:'major'}, {n:'Bm',t:'minor'},
+];
+
+const ALL_KEYS = [...MAJOR_KEYS, ...MINOR_KEYS];
+
+function keyLabel(k) {
+  const isMin = k.endsWith('m');
+  return (isMin ? k.slice(0, -1) : k) + (isMin ? ' minor' : ' major');
+}
+function keyIdSet(k) { return new Set(KEYS[k].map(c => chordId(c.n))); }
+function keysForChordId(cid, pool) { return pool.filter(k => KEYS[k].some(c => chordId(c.n) === cid)); }
+
+function qShuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
+}
+function sample(arr, n) { return qShuffle([...arr]).slice(0, n); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ── Persistent stats (localStorage) ──
+const QSTATS_KEY = 'cf_quiz_stats';
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(QSTATS_KEY)) || {blocks: []}; }
+  catch (e) { return {blocks: []}; }
+}
+function saveStats(s) { try { localStorage.setItem(QSTATS_KEY, JSON.stringify(s)); } catch (e) {} }
+function recordBlock(activity, correct, total) {
+  const s = loadStats();
+  s.blocks.push({a: activity, c: correct, n: total, t: Date.now()});
+  if (s.blocks.length > 300) s.blocks = s.blocks.slice(-300);
+  saveStats(s);
+  return s;
 }
 
-function buildDeck() {
-  const keys = fcKeyType === 'major' ? MAJOR_KEYS
-             : fcKeyType === 'minor' ? MINOR_KEYS
-             : [...MAJOR_KEYS, ...MINOR_KEYS];
-  fcDeck = shuffle([...keys]);
-  fcIdx = 0;
+const ACT_NAMES = {1: 'Chords in a Key', 2: 'Keys for a Chord', 3: 'Type the Key'};
+
+// ── Quiz state ──
+const quiz = {activity: null, scope: 'all', qIndex: 0, correctCount: 0, total: 10, q: null, answered: false};
+
+const elHome     = document.getElementById('quizHome');
+const elQuestion = document.getElementById('quizQuestion');
+const elComplete = document.getElementById('quizComplete');
+const qCard      = document.getElementById('qCard');
+const qProgress  = document.getElementById('qProgress');
+const qScore     = document.getElementById('qScore');
+const qBarFill   = document.getElementById('qBarFill');
+
+function scopeKeys() {
+  return quiz.scope === 'major' ? MAJOR_KEYS
+       : quiz.scope === 'minor' ? MINOR_KEYS
+       : ALL_KEYS;
 }
 
-function renderCard() {
-  const k = fcDeck[fcIdx];
-  const isMinor = k.endsWith('m');
-  const root = isMinor ? k.slice(0, -1) : k;
-
-  fcKeyName.textContent  = root;
-  fcKeyMode.textContent  = isMinor ? 'Minor' : 'Major';
-  fcBackLabel.textContent = k + (isMinor ? ' minor' : ' major');
-
-  fcGrid.innerHTML = KEYS[k].map(c => `
-    <div class="fc-badge ${c.t}">
-      <span class="fc-deg">${c.d}</span>
-      <span class="fc-ch">${c.n}</span>
-    </div>`).join('');
-
-  fcProgress.textContent = `${fcIdx + 1} / ${fcDeck.length}`;
+// ── Question generators ──
+function genA1() {
+  const key = pick(scopeKeys());
+  const ids = keyIdSet(key);
+  const correct  = KEYS[key].map(c => ({name: c.n, correct: true}));
+  const distract = sample(CANON_CHORDS.filter(c => !ids.has(chordId(c.n))), 4)
+                     .map(c => ({name: c.n, correct: false}));
+  return {type: 1, key, options: qShuffle([...correct, ...distract]), selected: new Set()};
 }
 
-function snapToFront() {
-  // Instantly reset flip without animation
-  fcCardInner.style.transition = 'none';
-  fcCardInner.classList.remove('flipped');
-  fcFlipped = false;
-  // Re-enable transition on next frame
-  requestAnimationFrame(() => { fcCardInner.style.transition = ''; });
+function genA2() {
+  const chord = pick(CANON_CHORDS);
+  const cid   = chordId(chord.n);
+  const pool  = scopeKeys();
+  const correctKeys  = keysForChordId(cid, pool);
+  const distractKeys = sample(pool.filter(k => !correctKeys.includes(k)), quiz.scope === 'all' ? 6 : 5);
+  const options = qShuffle([
+    ...correctKeys.map(k => ({key: k, correct: true})),
+    ...distractKeys.map(k => ({key: k, correct: false})),
+  ]);
+  return {type: 2, chord, options, selected: new Set()};
 }
 
-function fcGoTo(idx) {
-  fcIdx = idx;
-  snapToFront();
-  renderCard();
+function genA3() {
+  const key = pick(scopeKeys());
+  return {type: 3, key, answerIds: keyIdSet(key), answerNames: KEYS[key].map(c => c.n)};
 }
 
-// Tap card to flip
-document.getElementById('fcScene').addEventListener('click', () => {
-  fcFlipped = !fcFlipped;
-  fcCardInner.classList.toggle('flipped', fcFlipped);
-});
+function genQuestion() {
+  return quiz.activity === 1 ? genA1() : quiz.activity === 2 ? genA2() : genA3();
+}
 
-// Prev / Next
-document.getElementById('fcPrev').addEventListener('click', e => {
-  e.stopPropagation();
-  fcGoTo(fcIdx > 0 ? fcIdx - 1 : fcDeck.length - 1);
-});
-document.getElementById('fcNext').addEventListener('click', e => {
-  e.stopPropagation();
-  fcGoTo(fcIdx < fcDeck.length - 1 ? fcIdx + 1 : 0);
-});
+// ── Block flow ──
+function startBlock(activity) {
+  quiz.activity = activity;
+  quiz.qIndex = 0;
+  quiz.correctCount = 0;
+  elHome.style.display = 'none';
+  elComplete.style.display = 'none';
+  elQuestion.style.display = '';
+  nextQuestion();
+}
 
-// Key type filter
-document.getElementById('fcKeyType').addEventListener('change', e => {
-  fcKeyType = e.target.value;
-  buildDeck();
-  renderCard();
-});
+function nextQuestion() {
+  quiz.q = genQuestion();
+  quiz.answered = false;
+  qProgress.textContent = `Question ${quiz.qIndex + 1} / ${quiz.total}`;
+  qScore.textContent = `${quiz.correctCount} correct`;
+  qBarFill.style.width = (quiz.qIndex / quiz.total * 100) + '%';
+  renderQuestion();
+}
 
-// Shuffle button
-document.getElementById('fcShuffle').addEventListener('click', () => {
-  buildDeck();
-  renderCard();
-});
+function renderQuestion() {
+  const q = quiz.q;
+  if (q.type === 1) {
+    const isMin = q.key.endsWith('m');
+    qCard.innerHTML = `
+      <div class="q-prompt">
+        <div class="q-prompt-label">Which chords are in</div>
+        <div class="q-prompt-main">${isMin ? q.key.slice(0, -1) : q.key}</div>
+        <div class="q-prompt-sub">${isMin ? 'minor' : 'major'} key</div>
+      </div>
+      <div class="q-options" id="qOpts"></div>
+      <div id="qFeedback"></div>
+      <button class="q-action" id="qSubmit">Check answer</button>`;
+    buildToggles(q.options.map(o => o.name));
+    qCard.querySelector('#qSubmit').onclick = gradeMulti;
 
-// Init flashcard deck
-buildDeck();
-renderCard();
+  } else if (q.type === 2) {
+    qCard.innerHTML = `
+      <div class="q-prompt">
+        <div class="q-prompt-label">Which keys contain</div>
+        <div class="q-prompt-main ${q.chord.t}">${q.chord.n}</div>
+        <div class="q-prompt-sub">${q.chord.t}</div>
+      </div>
+      <div class="q-options q-keyopts" id="qOpts"></div>
+      <div id="qFeedback"></div>
+      <button class="q-action" id="qSubmit">Check answer</button>`;
+    buildToggles(q.options.map(o => keyLabel(o.key)));
+    qCard.querySelector('#qSubmit').onclick = gradeMulti;
+
+  } else {
+    const isMin = q.key.endsWith('m');
+    qCard.innerHTML = `
+      <div class="q-prompt">
+        <div class="q-prompt-label">Type the six chords in</div>
+        <div class="q-prompt-main">${isMin ? q.key.slice(0, -1) : q.key}</div>
+        <div class="q-prompt-sub">${isMin ? 'minor' : 'major'} key</div>
+      </div>
+      <input class="q-input" id="qInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="e.g. C  Dm  Em  F  G  Am">
+      <div class="q-hint">Separate chords with spaces or commas</div>
+      <div id="qFeedback"></div>
+      <button class="q-action" id="qSubmit">Check answer</button>`;
+    const input = qCard.querySelector('#qInput');
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !quiz.answered) { e.preventDefault(); gradeA3(); }
+    });
+    input.focus();
+    qCard.querySelector('#qSubmit').onclick = gradeA3;
+  }
+}
+
+function buildToggles(labels) {
+  const wrap = qCard.querySelector('#qOpts');
+  labels.forEach((label, i) => {
+    const b = document.createElement('button');
+    b.className = 'q-opt';
+    b.textContent = label;
+    b.dataset.i = i;
+    b.onclick = () => {
+      if (quiz.answered) return;
+      if (quiz.q.selected.has(i)) { quiz.q.selected.delete(i); b.classList.remove('sel'); }
+      else { quiz.q.selected.add(i); b.classList.add('sel'); }
+    };
+    wrap.appendChild(b);
+  });
+}
+
+function gradeMulti() {
+  const q = quiz.q;
+  const correctIdx = new Set(q.options.map((o, i) => o.correct ? i : -1).filter(i => i >= 0));
+  const ok = q.selected.size === correctIdx.size && [...q.selected].every(i => correctIdx.has(i));
+
+  qCard.querySelectorAll('.q-opt').forEach(b => {
+    const i = +b.dataset.i;
+    b.disabled = true;
+    b.classList.remove('sel');
+    const isCorrect = correctIdx.has(i), isSel = q.selected.has(i);
+    if (isCorrect && isSel) b.classList.add('correct');
+    else if (!isCorrect && isSel) b.classList.add('wrong');
+    else if (isCorrect && !isSel) b.classList.add('missed');
+  });
+
+  let fb;
+  if (q.type === 1) {
+    const names = q.options.filter(o => o.correct).map(o => o.name);
+    fb = `The chords in <b>${keyLabel(q.key)}</b> are <b>${names.join(', ')}</b>.`;
+  } else {
+    const labels = q.options.filter(o => o.correct).map(o => keyLabel(o.key));
+    fb = `<b>${q.chord.n}</b> is found in <b>${labels.join(', ')}</b>.`;
+  }
+  finishQuestion(ok, fb);
+}
+
+function gradeA3() {
+  const q = quiz.q;
+  const input = qCard.querySelector('#qInput');
+  const entered = new Set();
+  input.value.split(/[\s,]+/).filter(Boolean).forEach(tok => {
+    const id = chordId(tok);
+    if (id) entered.add(id);
+  });
+  const ok = entered.size === q.answerIds.size && [...q.answerIds].every(id => entered.has(id));
+  input.disabled = true;
+  finishQuestion(ok, `The chords in <b>${keyLabel(q.key)}</b> are <b>${q.answerNames.join(', ')}</b>.`);
+}
+
+function finishQuestion(ok, feedbackHtml) {
+  quiz.answered = true;
+  if (ok) { quiz.correctCount++; qScore.textContent = `${quiz.correctCount} correct`; }
+  const fb = qCard.querySelector('#qFeedback');
+  fb.className = 'q-feedback ' + (ok ? 'good' : 'bad');
+  fb.innerHTML = (ok ? '✓ Correct! ' : '✗ Not quite. ') + feedbackHtml;
+
+  const submit = qCard.querySelector('#qSubmit');
+  submit.textContent = (quiz.qIndex + 1 < quiz.total) ? 'Next question' : 'See results';
+  submit.classList.add('ghost');
+  submit.onclick = () => {
+    quiz.qIndex++;
+    if (quiz.qIndex >= quiz.total) finishBlock();
+    else nextQuestion();
+  };
+}
+
+function finishBlock() {
+  recordBlock(quiz.activity, quiz.correctCount, quiz.total);
+  elQuestion.style.display = 'none';
+  elComplete.style.display = '';
+  const pct = Math.round(quiz.correctCount / quiz.total * 100);
+  document.getElementById('qcPct').textContent = pct + '%';
+  document.getElementById('qcSub').textContent =
+    `${quiz.correctCount} of ${quiz.total} correct · ${ACT_NAMES[quiz.activity]}`;
+  renderStats(document.getElementById('qcStats'));
+}
+
+// ── Stats rendering ──
+function renderStats(el) {
+  const blocks = loadStats().blocks;
+  if (!blocks.length) {
+    el.innerHTML = `<div class="q-stats-title">Your progress</div>
+      <div class="q-stat-sub">No rounds yet — finish a round to start tracking your improvement.</div>`;
+    return;
+  }
+  const totC = blocks.reduce((a, b) => a + b.c, 0);
+  const totN = blocks.reduce((a, b) => a + b.n, 0);
+  const overall = Math.round(totC / totN * 100);
+
+  const per = [1, 2, 3].map(a => {
+    const bs = blocks.filter(b => b.a === a);
+    const c = bs.reduce((x, b) => x + b.c, 0), n = bs.reduce((x, b) => x + b.n, 0);
+    return {a, pct: n ? Math.round(c / n * 100) : null};
+  });
+
+  const firstPct = Math.round(blocks[0].c / blocks[0].n * 100);
+  const lastPct  = Math.round(blocks[blocks.length - 1].c / blocks[blocks.length - 1].n * 100);
+  const diff = lastPct - firstPct;
+
+  const spark = blocks.slice(-24).map(b => Math.round(b.c / b.n * 100));
+  const sparkHtml = spark.map(p => `<div class="q-spark-bar" style="height:${Math.max(6, p)}%"></div>`).join('');
+
+  let improveHtml = '';
+  if (blocks.length >= 2) {
+    const arrow = diff > 0 ? `<span class="up">▲ ${diff}%</span>`
+                : diff < 0 ? `<span class="down">▼ ${-diff}%</span>`
+                : `<span>holding steady</span>`;
+    improveHtml = `<div class="q-improve">First round <b>${firstPct}%</b> → latest <b>${lastPct}%</b> ${arrow}</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="q-stats-title">Your progress</div>
+    <div class="q-stat-row">
+      <div><div class="q-stat-big">${overall}%</div><div class="q-stat-sub">overall accuracy</div></div>
+      <div class="q-stat-sub">${blocks.length} round${blocks.length > 1 ? 's' : ''}<br>${totN} questions</div>
+    </div>
+    ${improveHtml}
+    <div class="q-spark">${sparkHtml}</div>
+    <div class="q-peract">
+      ${per.map(p => `<div class="q-peract-cell"><div class="q-peract-pct">${p.pct === null ? '—' : p.pct + '%'}</div><div class="q-peract-lbl">Act ${p.a}</div></div>`).join('')}
+    </div>`;
+}
+
+function quizGoHome() {
+  elQuestion.style.display = 'none';
+  elComplete.style.display = 'none';
+  elHome.style.display = '';
+  renderStats(document.getElementById('qStats'));
+}
+
+// ── Quiz events ──
+document.getElementById('qScope').addEventListener('click', e => {
+  const b = e.target.closest('.q-scope-btn');
+  if (!b) return;
+  quiz.scope = b.dataset.scope;
+  document.querySelectorAll('.q-scope-btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+});
+document.querySelectorAll('.q-act-btn').forEach(b => {
+  b.addEventListener('click', () => startBlock(+b.dataset.act));
+});
+document.getElementById('qQuit').addEventListener('click', quizGoHome);
+document.getElementById('qcHome').addEventListener('click', quizGoHome);
+document.getElementById('qcAgain').addEventListener('click', () => startBlock(quiz.activity));
+
+// Init home stats
+renderStats(document.getElementById('qStats'));
 
 // ══════════════════════════════════════════════════
 // TAB SWITCHING
@@ -869,10 +1173,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const target = btn.dataset.tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('practicePanel').style.display    = target === 'practice'   ? '' : 'none';
-    document.getElementById('flashcardsPanel').style.display  = target === 'flashcards' ? '' : 'none';
+    document.getElementById('practicePanel').style.display = target === 'practice' ? '' : 'none';
+    document.getElementById('quizPanel').style.display     = target === 'quiz'     ? '' : 'none';
     // Stop metronome when leaving practice tab
     if (target !== 'practice' && running) stopMetronome();
+    // Reset quiz to home view when entering
+    if (target === 'quiz') quizGoHome();
   });
 });
 </script>
