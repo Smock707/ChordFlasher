@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chord Flasher — Guitar Chord Practice Tool</title>
+  <meta name="description" content="Free guitar practice tool. Flash random chords at any BPM, learn which chords belong in every key, and drill with built-in flashcards. No sign-up required.">
+  <meta name="theme-color" content="#0d0d14">
+  <meta property="og:title"       content="Chord Flasher">
+  <meta property="og:description" content="Practice switching guitar chords at any tempo. Includes chord diagrams, key modes, and a flashcard mode for every major and minor key.">
+  <meta property="og:type"        content="website">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #f0a500;
+      --bg:     #0d0d14;
+      --card:   #16161f;
+      --card2:  #1a1a26;
+      --border: #252535;
+      --dim:    #555566;
+    }
+
+    body {
+      background: var(--bg);
+      color: #e8e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+
+    h1 {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.6rem;
+      opacity: 0.85;
+    }
+
+    /* ── Tab switcher ── */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      padding: 7px 20px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--dim);
+      transition: all 0.15s;
+    }
+    .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+    .tab-btn:not(.active):hover { border-color: #3a3a50; color: #aaa; }
+
+    /* ════════════════════════════════════
+       PRACTICE TAB
+    ════════════════════════════════════ */
+
+    /* ── Card row (main + next) ── */
+    .card-row {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 1.6rem;
+    }
+
+    /* ── Chord card ── */
+    .chord-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 28px;
+      padding: 2.2rem 3.5rem 2rem;
+      text-align: center;
+      min-width: 300px;
+      position: relative;
+    }
+
+    @keyframes cardFlash {
+      0%   { border-color: var(--accent); box-shadow: 0 0 60px rgba(240,165,0,0.35), 0 0 0 1px rgba(240,165,0,0.2); }
+      100% { border-color: var(--border); box-shadow: none; }
+    }
+    .chord-card.flash { animation: cardFlash 0.55s ease-out forwards; }
+
+    @keyframes namePop {
+      0%   { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .chord-name {
+      font-size: 5.2rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .chord-name.pop        { animation: namePop 0.18s ease-out forwards; }
+    .chord-name.major      { color: #4dd9b8; }
+    .chord-name.minor      { color: #8b8ffc; }
+    .chord-name.diminished { color: #f87171; }
+
+    .chord-type {
+      margin-top: 0.5rem;
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--dim);
+    }
+    .chord-degree {
+      margin-top: 0.3rem;
+      font-size: 0.82rem; font-weight: 500;
+      color: var(--accent); min-height: 1.2em; opacity: 0.9;
+    }
+    .chord-diagram {
+      margin-top: 1.4rem;
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 130px;
+    }
+    .chord-diagram svg text {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ── Next-up tab ── */
+    .next-tab {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 1rem 1.1rem;
+      min-width: 100px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0.35rem;
+    }
+    @keyframes nextFlash {
+      0%   { border-color: rgba(240,165,0,0.55); box-shadow: 0 0 22px rgba(240,165,0,0.18); }
+      100% { border-color: var(--border); box-shadow: none; }
+    }
+    .next-tab.flash { animation: nextFlash 0.5s ease-out forwards; }
+    .next-label {
+      font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim);
+    }
+    .next-name {
+      font-size: 2.3rem; font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1; opacity: 0.65;
+    }
+    .next-name.major      { color: #4dd9b8; }
+    .next-name.minor      { color: #8b8ffc; }
+    .next-name.diminished { color: #f87171; }
+    .next-type {
+      font-size: 0.58rem; font-weight: 600;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim);
+    }
+
+    /* ── Beat dots ── */
+    .beats {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 1.8rem;
+    }
+    .beat {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--border);
+      transition: background 0.04s, transform 0.04s, box-shadow 0.04s;
+    }
+    .beat.active { background: var(--accent); transform: scale(1.45); box-shadow: 0 0 10px rgba(240,165,0,0.75); }
+    .beat.beat-one.active { background: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.85); }
+
+    /* ── Controls panel ── */
+    .panel {
+      background: var(--card2);
+      border: 1px solid var(--border); border-radius: 22px;
+      padding: 1.4rem 1.5rem; width: 100%; max-width: 390px;
+      display: flex; flex-direction: column; gap: 1.1rem;
+    }
+    .row { display: flex; align-items: center; gap: 12px; }
+    .lbl {
+      font-size: 0.67rem; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--dim); min-width: 50px;
+    }
+    input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 4px; background: var(--border);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; transition: box-shadow 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 7px rgba(240,165,0,0.18); }
+    .bpm-val {
+      font-size: 1.05rem; font-weight: 700;
+      color: var(--accent); min-width: 44px; text-align: right;
+    }
+    .pills { display: flex; gap: 6px; flex: 1; }
+    .pill {
+      flex: 1; padding: 6px 0;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--dim);
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    }
+    .pill:hover { border-color: #3a3a50; color: #999; }
+    .pill.on { background: rgba(240,165,0,0.12); border-color: var(--accent); color: var(--accent); }
+    select {
+      flex: 1; background: transparent;
+      border: 1px solid var(--border); border-radius: 8px;
+      color: #e8e8f0; padding: 7px 10px; font-size: 0.9rem;
+      outline: none; cursor: pointer; transition: border-color 0.15s;
+    }
+    select option { background: #1a1a26; }
+    select:focus  { border-color: var(--accent); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0.1rem 0; }
+    .play-btn {
+      width: 100%; padding: 13px; border: 2px solid transparent; border-radius: 12px;
+      font-size: 0.92rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .play-btn.stopped { background: var(--accent); color: #000; }
+    .play-btn.stopped:hover { background: #ffba18; box-shadow: 0 6px 24px rgba(240,165,0,0.3); }
+    .play-btn.running { background: transparent; border-color: var(--accent); color: var(--accent); }
+    .play-btn.running:hover { background: rgba(240,165,0,0.07); }
+
+    /* ════════════════════════════════════
+       FLASHCARD TAB
+    ════════════════════════════════════ */
+
+    .fc-panel {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 1.4rem; width: 100%; max-width: 420px;
+    }
+
+    /* Top controls row */
+    .fc-top {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+    }
+    .fc-top select { flex: 1; }
+
+    .fc-shuffle-btn {
+      padding: 7px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: transparent; color: var(--dim);
+      font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .fc-shuffle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* 3D flip card */
+    .fc-scene {
+      perspective: 900px;
+      width: 360px; height: 290px;
+      cursor: pointer; user-select: none;
+    }
+    .fc-card-inner {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.42s ease;
+    }
+    .fc-card-inner.flipped { transform: rotateY(180deg); }
+
+    .fc-face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      border-radius: 24px;
+      border: 2px solid var(--border);
+      background: var(--card);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem;
+    }
+    .fc-face.back { transform: rotateY(180deg); }
+
+    /* Front */
+    .fc-key-name {
+      font-size: 3.4rem; font-weight: 800;
+      letter-spacing: -0.03em; color: #e8e8f0; line-height: 1;
+    }
+    .fc-key-mode {
+      margin-top: 0.5rem;
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim);
+    }
+    .fc-tap-hint {
+      margin-top: 2rem;
+      font-size: 0.65rem; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--dim); opacity: 0.5;
+    }
+
+    /* Back */
+    .fc-back-label {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 1rem;
+    }
+    .fc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px; width: 100%;
+    }
+    .fc-badge {
+      display: flex; flex-direction: column;
+      align-items: center; padding: 9px 6px;
+      border-radius: 10px; border: 1px solid var(--border); gap: 3px;
+    }
+    .fc-badge.major { border-color: rgba(77,217,184,0.35); background: rgba(77,217,184,0.07); }
+    .fc-badge.minor { border-color: rgba(139,143,252,0.35); background: rgba(139,143,252,0.07); }
+    .fc-deg {
+      font-size: 0.58rem; font-weight: 700;
+      letter-spacing: 0.06em; color: var(--dim);
+    }
+    .fc-ch {
+      font-size: 1.35rem; font-weight: 800;
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .fc-badge.major .fc-ch { color: #4dd9b8; }
+    .fc-badge.minor .fc-ch { color: #8b8ffc; }
+
+    /* Navigation */
+    .fc-nav {
+      display: flex; align-items: center; gap: 1.2rem;
+    }
+    .fc-nav-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 1.5px solid var(--border); background: transparent;
+      color: #e8e8f0; font-size: 1rem; cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fc-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .fc-progress {
+      font-size: 0.72rem; font-weight: 600;
+      color: var(--dim); min-width: 58px; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Chord Flasher</h1>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="practice">Practice</button>
+  <button class="tab-btn"        data-tab="flashcards">Flashcards</button>
+</div>
+
+<!-- ═══════════════ PRACTICE PANEL ═══════════════ -->
+<div id="practicePanel">
+
+  <div class="card-row">
+    <div class="chord-card" id="card">
+      <div class="chord-name" id="cname">—</div>
+      <div class="chord-type" id="ctype">press start to begin</div>
+      <div class="chord-degree" id="cdeg"></div>
+      <div class="chord-diagram" id="diagram"></div>
+    </div>
+    <div class="next-tab" id="nextTab">
+      <div class="next-label">Next</div>
+      <div class="next-name" id="nextName">—</div>
+      <div class="next-type" id="nextType"></div>
+    </div>
+  </div>
+
+  <div class="beats">
+    <div class="beat beat-one" id="b0"></div>
+    <div class="beat"          id="b1"></div>
+    <div class="beat"          id="b2"></div>
+    <div class="beat"          id="b3"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <span class="lbl">BPM</span>
+      <input type="range" id="bpmSlider" min="40" max="208" value="80">
+      <span class="bpm-val" id="bpmVal">80</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Beats</span>
+      <div class="pills" id="pillGroup">
+        <button class="pill"    data-n="1">1</button>
+        <button class="pill on" data-n="2">2</button>
+        <button class="pill"    data-n="4">4</button>
+        <button class="pill"    data-n="8">8</button>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="row">
+      <span class="lbl">Key</span>
+      <select id="keySelect">
+        <option value="All">All Keys (random)</option>
+        <optgroup label="── Major Keys ──">
+          <option value="C">C Major</option>
+          <option value="G">G Major</option>
+          <option value="D">D Major</option>
+          <option value="A">A Major</option>
+          <option value="E">E Major</option>
+          <option value="B">B Major</option>
+          <option value="F#">F# Major</option>
+          <option value="F">F Major</option>
+          <option value="Bb">Bb Major</option>
+          <option value="Eb">Eb Major</option>
+          <option value="Ab">Ab Major</option>
+          <option value="Db">Db Major</option>
+        </optgroup>
+        <optgroup label="── Minor Keys ──">
+          <option value="Am">A Minor</option>
+          <option value="Em">E Minor</option>
+          <option value="Bm">B Minor</option>
+          <option value="F#m">F# Minor</option>
+          <option value="C#m">C# Minor</option>
+          <option value="G#m">G# Minor</option>
+          <option value="Dm">D Minor</option>
+          <option value="Gm">G Minor</option>
+          <option value="Cm">C Minor</option>
+          <option value="Fm">F Minor</option>
+          <option value="Bbm">Bb Minor</option>
+          <option value="Ebm">Eb Minor</option>
+        </optgroup>
+      </select>
+    </div>
+    <button class="play-btn stopped" id="playBtn">Start</button>
+  </div>
+
+</div><!-- /practicePanel -->
+
+<!-- ═══════════════ FLASHCARD PANEL ═══════════════ -->
+<div id="flashcardsPanel" style="display:none">
+
+  <div class="fc-panel">
+
+    <div class="fc-top">
+      <select id="fcKeyType">
+        <option value="major">Major Keys</option>
+        <option value="minor">Minor Keys</option>
+        <option value="all">All Keys</option>
+      </select>
+      <button class="fc-shuffle-btn" id="fcShuffle">Shuffle</button>
+    </div>
+
+    <div class="fc-scene" id="fcScene">
+      <div class="fc-card-inner" id="fcCardInner">
+        <div class="fc-face front">
+          <div class="fc-key-name" id="fcKeyName">—</div>
+          <div class="fc-key-mode" id="fcKeyMode"></div>
+          <div class="fc-tap-hint">tap to reveal</div>
+        </div>
+        <div class="fc-face back">
+          <div class="fc-back-label" id="fcBackLabel"></div>
+          <div class="fc-grid" id="fcGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fc-nav">
+      <button class="fc-nav-btn" id="fcPrev">&#8592;</button>
+      <span class="fc-progress" id="fcProgress">— / —</span>
+      <button class="fc-nav-btn" id="fcNext">&#8594;</button>
+    </div>
+
+  </div>
+
+</div><!-- /flashcardsPanel -->
+
+<script>
+// ══════════════════════════════════════════════════
+// SHARED DATA
+// ══════════════════════════════════════════════════
+
+const KEYS = {
+  C:   [{n:'C',   t:'major',d:'I'},  {n:'Dm',  t:'minor',d:'ii'}, {n:'Em',  t:'minor',d:'iii'},{n:'F',   t:'major',d:'IV'}, {n:'G',   t:'major',d:'V'},  {n:'Am',  t:'minor',d:'vi'}],
+  G:   [{n:'G',   t:'major',d:'I'},  {n:'Am',  t:'minor',d:'ii'}, {n:'Bm',  t:'minor',d:'iii'},{n:'C',   t:'major',d:'IV'}, {n:'D',   t:'major',d:'V'},  {n:'Em',  t:'minor',d:'vi'}],
+  D:   [{n:'D',   t:'major',d:'I'},  {n:'Em',  t:'minor',d:'ii'}, {n:'F#m', t:'minor',d:'iii'},{n:'G',   t:'major',d:'IV'}, {n:'A',   t:'major',d:'V'},  {n:'Bm',  t:'minor',d:'vi'}],
+  A:   [{n:'A',   t:'major',d:'I'},  {n:'Bm',  t:'minor',d:'ii'}, {n:'C#m', t:'minor',d:'iii'},{n:'D',   t:'major',d:'IV'}, {n:'E',   t:'major',d:'V'},  {n:'F#m', t:'minor',d:'vi'}],
+  E:   [{n:'E',   t:'major',d:'I'},  {n:'F#m', t:'minor',d:'ii'}, {n:'G#m', t:'minor',d:'iii'},{n:'A',   t:'major',d:'IV'}, {n:'B',   t:'major',d:'V'},  {n:'C#m', t:'minor',d:'vi'}],
+  B:   [{n:'B',   t:'major',d:'I'},  {n:'C#m', t:'minor',d:'ii'}, {n:'D#m', t:'minor',d:'iii'},{n:'E',   t:'major',d:'IV'}, {n:'F#',  t:'major',d:'V'},  {n:'G#m', t:'minor',d:'vi'}],
+  'F#':[{n:'F#',  t:'major',d:'I'},  {n:'G#m', t:'minor',d:'ii'}, {n:'A#m', t:'minor',d:'iii'},{n:'B',   t:'major',d:'IV'}, {n:'C#',  t:'major',d:'V'},  {n:'D#m', t:'minor',d:'vi'}],
+  F:   [{n:'F',   t:'major',d:'I'},  {n:'Gm',  t:'minor',d:'ii'}, {n:'Am',  t:'minor',d:'iii'},{n:'Bb',  t:'major',d:'IV'}, {n:'C',   t:'major',d:'V'},  {n:'Dm',  t:'minor',d:'vi'}],
+  Bb:  [{n:'Bb',  t:'major',d:'I'},  {n:'Cm',  t:'minor',d:'ii'}, {n:'Dm',  t:'minor',d:'iii'},{n:'Eb',  t:'major',d:'IV'}, {n:'F',   t:'major',d:'V'},  {n:'Gm',  t:'minor',d:'vi'}],
+  Eb:  [{n:'Eb',  t:'major',d:'I'},  {n:'Fm',  t:'minor',d:'ii'}, {n:'Gm',  t:'minor',d:'iii'},{n:'Ab',  t:'major',d:'IV'}, {n:'Bb',  t:'major',d:'V'},  {n:'Cm',  t:'minor',d:'vi'}],
+  Ab:  [{n:'Ab',  t:'major',d:'I'},  {n:'Bbm', t:'minor',d:'ii'}, {n:'Cm',  t:'minor',d:'iii'},{n:'Db',  t:'major',d:'IV'}, {n:'Eb',  t:'major',d:'V'},  {n:'Fm',  t:'minor',d:'vi'}],
+  Db:  [{n:'Db',  t:'major',d:'I'},  {n:'Ebm', t:'minor',d:'ii'}, {n:'Fm',  t:'minor',d:'iii'},{n:'Gb',  t:'major',d:'IV'}, {n:'Ab',  t:'major',d:'V'},  {n:'Bbm', t:'minor',d:'vi'}],
+  Am:  [{n:'Am',  t:'minor',d:'i'},  {n:'C',   t:'major',d:'III'},{n:'Dm',  t:'minor',d:'iv'}, {n:'Em',  t:'minor',d:'v'},  {n:'F',   t:'major',d:'VI'}, {n:'G',   t:'major',d:'VII'}],
+  Em:  [{n:'Em',  t:'minor',d:'i'},  {n:'G',   t:'major',d:'III'},{n:'Am',  t:'minor',d:'iv'}, {n:'Bm',  t:'minor',d:'v'},  {n:'C',   t:'major',d:'VI'}, {n:'D',   t:'major',d:'VII'}],
+  Bm:  [{n:'Bm',  t:'minor',d:'i'},  {n:'D',   t:'major',d:'III'},{n:'Em',  t:'minor',d:'iv'}, {n:'F#m', t:'minor',d:'v'},  {n:'G',   t:'major',d:'VI'}, {n:'A',   t:'major',d:'VII'}],
+  'F#m':[{n:'F#m',t:'minor',d:'i'},  {n:'A',   t:'major',d:'III'},{n:'Bm',  t:'minor',d:'iv'}, {n:'C#m', t:'minor',d:'v'},  {n:'D',   t:'major',d:'VI'}, {n:'E',   t:'major',d:'VII'}],
+  'C#m':[{n:'C#m',t:'minor',d:'i'},  {n:'E',   t:'major',d:'III'},{n:'F#m', t:'minor',d:'iv'}, {n:'G#m', t:'minor',d:'v'},  {n:'A',   t:'major',d:'VI'}, {n:'B',   t:'major',d:'VII'}],
+  'G#m':[{n:'G#m',t:'minor',d:'i'},  {n:'B',   t:'major',d:'III'},{n:'C#m', t:'minor',d:'iv'}, {n:'D#m', t:'minor',d:'v'},  {n:'E',   t:'major',d:'VI'}, {n:'F#',  t:'major',d:'VII'}],
+  Dm:  [{n:'Dm',  t:'minor',d:'i'},  {n:'F',   t:'major',d:'III'},{n:'Gm',  t:'minor',d:'iv'}, {n:'Am',  t:'minor',d:'v'},  {n:'Bb',  t:'major',d:'VI'}, {n:'C',   t:'major',d:'VII'}],
+  Gm:  [{n:'Gm',  t:'minor',d:'i'},  {n:'Bb',  t:'major',d:'III'},{n:'Cm',  t:'minor',d:'iv'}, {n:'Dm',  t:'minor',d:'v'},  {n:'Eb',  t:'major',d:'VI'}, {n:'F',   t:'major',d:'VII'}],
+  Cm:  [{n:'Cm',  t:'minor',d:'i'},  {n:'Eb',  t:'major',d:'III'},{n:'Fm',  t:'minor',d:'iv'}, {n:'Gm',  t:'minor',d:'v'},  {n:'Ab',  t:'major',d:'VI'}, {n:'Bb',  t:'major',d:'VII'}],
+  Fm:  [{n:'Fm',  t:'minor',d:'i'},  {n:'Ab',  t:'major',d:'III'},{n:'Bbm', t:'minor',d:'iv'}, {n:'Cm',  t:'minor',d:'v'},  {n:'Db',  t:'major',d:'VI'}, {n:'Eb',  t:'major',d:'VII'}],
+  Bbm: [{n:'Bbm', t:'minor',d:'i'},  {n:'Db',  t:'major',d:'III'},{n:'Ebm', t:'minor',d:'iv'}, {n:'Fm',  t:'minor',d:'v'},  {n:'Gb',  t:'major',d:'VI'}, {n:'Ab',  t:'major',d:'VII'}],
+  Ebm: [{n:'Ebm', t:'minor',d:'i'},  {n:'Gb',  t:'major',d:'III'},{n:'Abm', t:'minor',d:'iv'}, {n:'Bbm', t:'minor',d:'v'},  {n:'Cb',  t:'major',d:'VI'}, {n:'Db',  t:'major',d:'VII'}],
+};
+
+const MAJOR_KEYS = ['C','G','D','A','E','B','F#','F','Bb','Eb','Ab','Db'];
+const MINOR_KEYS = ['Am','Em','Bm','F#m','C#m','G#m','Dm','Gm','Cm','Fm','Bbm','Ebm'];
+
+const ALL_POOL = ['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'].flatMap(r => [
+  { n: r,       t: 'major', d: '' },
+  { n: r + 'm', t: 'minor', d: '' },
+]);
+
+const FNG = {
+  'C':   {s:[-1,3,2,0,1,0],  b:1, bar:null},
+  'D':   {s:[-1,-1,0,2,3,2], b:1, bar:null},
+  'E':   {s:[0,2,2,1,0,0],   b:1, bar:null},
+  'F':   {s:[1,3,3,2,1,1],   b:1, bar:[1,0,5]},
+  'G':   {s:[3,2,0,0,0,3],   b:1, bar:null},
+  'A':   {s:[-1,0,2,2,2,0],  b:1, bar:null},
+  'B':   {s:[-1,2,4,4,4,2],  b:2, bar:[2,1,5]},
+  'Bb':  {s:[-1,1,3,3,3,1],  b:1, bar:[1,1,5]},
+  'Eb':  {s:[-1,6,8,8,8,6],  b:6, bar:[6,1,5]},
+  'Ab':  {s:[4,6,6,5,4,4],   b:4, bar:[4,0,5]},
+  'Db':  {s:[-1,4,6,6,6,4],  b:4, bar:[4,1,5]},
+  'F#':  {s:[2,4,4,3,2,2],   b:2, bar:[2,0,5]},
+  'Gb':  {s:[2,4,4,3,2,2],   b:2, bar:[2,0,5]},
+  'C#':  {s:[-1,4,6,6,6,4],  b:4, bar:[4,1,5]},
+  'Cb':  {s:[-1,2,4,4,4,2],  b:2, bar:[2,1,5]},
+  'Am':  {s:[-1,0,2,2,1,0],  b:1, bar:null},
+  'Dm':  {s:[-1,-1,0,2,3,1], b:1, bar:null},
+  'Em':  {s:[0,2,2,0,0,0],   b:1, bar:null},
+  'Fm':  {s:[1,3,3,1,1,1],   b:1, bar:[1,0,5]},
+  'Gm':  {s:[3,5,5,3,3,3],   b:3, bar:[3,0,5]},
+  'Bm':  {s:[-1,2,4,4,3,2],  b:2, bar:[2,1,5]},
+  'Cm':  {s:[-1,3,5,5,4,3],  b:3, bar:[3,1,5]},
+  'C#m': {s:[-1,4,6,6,5,4],  b:4, bar:[4,1,5]},
+  'Dbm': {s:[-1,4,6,6,5,4],  b:4, bar:[4,1,5]},
+  'D#m': {s:[-1,6,8,8,7,6],  b:6, bar:[6,1,5]},
+  'Ebm': {s:[-1,6,8,8,7,6],  b:6, bar:[6,1,5]},
+  'F#m': {s:[2,4,4,2,2,2],   b:2, bar:[2,0,5]},
+  'Gbm': {s:[2,4,4,2,2,2],   b:2, bar:[2,0,5]},
+  'G#m': {s:[4,6,6,4,4,4],   b:4, bar:[4,0,5]},
+  'Abm': {s:[4,6,6,4,4,4],   b:4, bar:[4,0,5]},
+  'A#m': {s:[-1,1,3,3,2,1],  b:1, bar:[1,1,5]},
+  'Bbm': {s:[-1,1,3,3,2,1],  b:1, bar:[1,1,5]},
+};
+
+function chordSVG(name) {
+  const data = FNG[name];
+  if (!data) return '';
+  const {s, b, bar} = data;
+  const W = 130, H = 135;
+  const tPad = 28, lPad = 22, rPad = 12, bPad = 8;
+  const gW = (W - lPad - rPad) / 5;
+  const gH = (H - tPad - bPad) / 4;
+  const sx  = i => lPad + i * gW;
+  const fy  = f => tPad + (f - b + 0.5) * gH;
+  const DOT = gH * 0.30;
+  let o = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  if (b === 1) {
+    o += `<line x1="${lPad}" y1="${tPad}" x2="${W-rPad}" y2="${tPad}" stroke="#c8c8e0" stroke-width="3.5" stroke-linecap="round"/>`;
+  } else {
+    o += `<line x1="${lPad}" y1="${tPad}" x2="${W-rPad}" y2="${tPad}" stroke="#404055" stroke-width="1.5"/>`;
+    o += `<text x="${lPad-4}" y="${tPad + gH*0.5 + 4}" text-anchor="end" fill="#f0a500" font-size="10" font-weight="bold">${b}fr</text>`;
+  }
+  for (let f = 1; f <= 4; f++) {
+    const y = tPad + f * gH;
+    o += `<line x1="${lPad}" y1="${y}" x2="${W-rPad}" y2="${y}" stroke="#303045" stroke-width="1"/>`;
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = sx(i);
+    o += `<line x1="${x}" y1="${tPad}" x2="${x}" y2="${tPad + 4*gH}" stroke="#353550" stroke-width="1"/>`;
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = sx(i), y = tPad - 10;
+    if (s[i] === -1) {
+      o += `<text x="${x}" y="${y+5}" text-anchor="middle" fill="#f87171" font-size="11" font-weight="bold">✕</text>`;
+    } else if (s[i] === 0) {
+      o += `<circle cx="${x}" cy="${y}" r="5" fill="none" stroke="#4dd9b8" stroke-width="1.5"/>`;
+    }
+  }
+  if (bar) {
+    const [bf, bFrom, bTo] = bar;
+    const cy = fy(bf);
+    o += `<rect x="${sx(bFrom)}" y="${cy-DOT}" width="${sx(bTo)-sx(bFrom)}" height="${DOT*2}" rx="${DOT}" fill="#f0a500"/>`;
+  }
+  for (let i = 0; i < 6; i++) {
+    const f = s[i];
+    if (f <= 0) continue;
+    if (bar && f === bar[0] && i >= bar[1] && i <= bar[2]) continue;
+    o += `<circle cx="${sx(i)}" cy="${fy(f)}" r="${DOT}" fill="#f0a500"/>`;
+  }
+  o += '</svg>';
+  return o;
+}
+
+// ══════════════════════════════════════════════════
+// PRACTICE TAB
+// ══════════════════════════════════════════════════
+
+let running = false, bpm = 80, beatsPerChord = 2, beat = 0;
+let timerId = null, practiceKey = 'All';
+let currChord = null, upNext = null;
+
+const card     = document.getElementById('card');
+const cname    = document.getElementById('cname');
+const ctype    = document.getElementById('ctype');
+const cdeg     = document.getElementById('cdeg');
+const diagram  = document.getElementById('diagram');
+const nextTab  = document.getElementById('nextTab');
+const nextName = document.getElementById('nextName');
+const nextType = document.getElementById('nextType');
+const dots     = [0,1,2,3].map(i => document.getElementById('b' + i));
+const playBtn  = document.getElementById('playBtn');
+
+function getPool() { return practiceKey === 'All' ? ALL_POOL : (KEYS[practiceKey] || ALL_POOL); }
+
+function pickFrom(excluding) {
+  const p = getPool();
+  let c;
+  do { c = p[Math.floor(Math.random() * p.length)]; }
+  while (p.length > 1 && c.n === excluding?.n);
+  return c;
+}
+
+function showChord(chord) {
+  cname.textContent = chord.n;
+  cname.className   = 'chord-name ' + chord.t;
+  ctype.textContent = chord.t;
+  const keyLabel = practiceKey !== 'All'
+    ? practiceKey + (practiceKey.endsWith('m') ? ' minor' : ' major') : '';
+  cdeg.textContent = (chord.d && practiceKey !== 'All') ? chord.d + '  ·  ' + keyLabel : '';
+  diagram.innerHTML = chordSVG(chord.n);
+  card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+  cname.classList.remove('pop'); void cname.offsetWidth; cname.classList.add('pop');
+}
+
+function showNext(chord) {
+  nextName.textContent = chord.n;
+  nextName.className   = 'next-name ' + chord.t;
+  nextType.textContent = chord.t;
+  nextTab.classList.remove('flash'); void nextTab.offsetWidth; nextTab.classList.add('flash');
+}
+
+function advance() {
+  currChord = upNext ?? pickFrom(null);
+  upNext    = pickFrom(currChord);
+  showChord(currChord);
+  showNext(upNext);
+}
+
+function tick() {
+  dots.forEach((d, i) => d.classList.toggle('active', i === (beat % 4)));
+  if (beat % beatsPerChord === 0) advance();
+  beat++;
+}
+
+function startMetronome() {
+  running = true; beat = 0; currChord = null; upNext = null;
+  playBtn.textContent = 'Stop'; playBtn.className = 'play-btn running';
+  tick();
+  timerId = setInterval(tick, 60000 / bpm);
+}
+
+function stopMetronome() {
+  running = false; clearInterval(timerId); timerId = null;
+  playBtn.textContent = 'Start'; playBtn.className = 'play-btn stopped';
+  dots.forEach(d => d.classList.remove('active'));
+  cname.textContent = '—'; cname.className = 'chord-name';
+  ctype.textContent = 'press start to begin'; cdeg.textContent = '';
+  diagram.innerHTML = '';
+  nextName.textContent = '—'; nextName.className = 'next-name'; nextType.textContent = '';
+}
+
+function reschedule() { clearInterval(timerId); timerId = setInterval(tick, 60000 / bpm); }
+
+playBtn.addEventListener('click', () => running ? stopMetronome() : startMetronome());
+
+document.getElementById('bpmSlider').addEventListener('input', e => {
+  bpm = +e.target.value;
+  document.getElementById('bpmVal').textContent = bpm;
+  if (running) reschedule();
+});
+
+document.getElementById('keySelect').addEventListener('change', e => {
+  practiceKey = e.target.value; upNext = null;
+});
+
+document.getElementById('pillGroup').addEventListener('click', e => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  beatsPerChord = +btn.dataset.n;
+});
+
+// ══════════════════════════════════════════════════
+// FLASHCARD TAB
+// ══════════════════════════════════════════════════
+
+let fcDeck = [], fcIdx = 0, fcFlipped = false, fcKeyType = 'major';
+
+const fcCardInner = document.getElementById('fcCardInner');
+const fcKeyName   = document.getElementById('fcKeyName');
+const fcKeyMode   = document.getElementById('fcKeyMode');
+const fcBackLabel = document.getElementById('fcBackLabel');
+const fcGrid      = document.getElementById('fcGrid');
+const fcProgress  = document.getElementById('fcProgress');
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildDeck() {
+  const keys = fcKeyType === 'major' ? MAJOR_KEYS
+             : fcKeyType === 'minor' ? MINOR_KEYS
+             : [...MAJOR_KEYS, ...MINOR_KEYS];
+  fcDeck = shuffle([...keys]);
+  fcIdx = 0;
+}
+
+function renderCard() {
+  const k = fcDeck[fcIdx];
+  const isMinor = k.endsWith('m');
+  const root = isMinor ? k.slice(0, -1) : k;
+
+  fcKeyName.textContent  = root;
+  fcKeyMode.textContent  = isMinor ? 'Minor' : 'Major';
+  fcBackLabel.textContent = k + (isMinor ? ' minor' : ' major');
+
+  fcGrid.innerHTML = KEYS[k].map(c => `
+    <div class="fc-badge ${c.t}">
+      <span class="fc-deg">${c.d}</span>
+      <span class="fc-ch">${c.n}</span>
+    </div>`).join('');
+
+  fcProgress.textContent = `${fcIdx + 1} / ${fcDeck.length}`;
+}
+
+function snapToFront() {
+  // Instantly reset flip without animation
+  fcCardInner.style.transition = 'none';
+  fcCardInner.classList.remove('flipped');
+  fcFlipped = false;
+  // Re-enable transition on next frame
+  requestAnimationFrame(() => { fcCardInner.style.transition = ''; });
+}
+
+function fcGoTo(idx) {
+  fcIdx = idx;
+  snapToFront();
+  renderCard();
+}
+
+// Tap card to flip
+document.getElementById('fcScene').addEventListener('click', () => {
+  fcFlipped = !fcFlipped;
+  fcCardInner.classList.toggle('flipped', fcFlipped);
+});
+
+// Prev / Next
+document.getElementById('fcPrev').addEventListener('click', e => {
+  e.stopPropagation();
+  fcGoTo(fcIdx > 0 ? fcIdx - 1 : fcDeck.length - 1);
+});
+document.getElementById('fcNext').addEventListener('click', e => {
+  e.stopPropagation();
+  fcGoTo(fcIdx < fcDeck.length - 1 ? fcIdx + 1 : 0);
+});
+
+// Key type filter
+document.getElementById('fcKeyType').addEventListener('change', e => {
+  fcKeyType = e.target.value;
+  buildDeck();
+  renderCard();
+});
+
+// Shuffle button
+document.getElementById('fcShuffle').addEventListener('click', () => {
+  buildDeck();
+  renderCard();
+});
+
+// Init flashcard deck
+buildDeck();
+renderCard();
+
+// ══════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('practicePanel').style.display    = target === 'practice'   ? '' : 'none';
+    document.getElementById('flashcardsPanel').style.display  = target === 'flashcards' ? '' : 'none';
+    // Stop metronome when leaving practice tab
+    if (target !== 'practice' && running) stopMetronome();
+  });
+});
+</script>
+</body>
+</html>
